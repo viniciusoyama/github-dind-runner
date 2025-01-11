@@ -1,0 +1,14 @@
+services:
+  runner:
+    build: .
+    restart: always
+    deploy:
+      mode: replicated
+      replicas: 4
+      resources:
+        limits:
+          cpus: 0.35
+          memory: 300M
+        reservations:
+          cpus: 0.25
+          memory: 128M
