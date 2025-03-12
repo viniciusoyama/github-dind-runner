@@ -1,19 +1,42 @@
-FROM ubuntu:24.04
+FROM nestybox/ubuntu-noble-systemd-docker
 
-ARG RUNNER_VERSION="2.321.0"
+# Extra deps for GHA Runner
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update \
+    && apt-get install -y \
+    curl \
+    jq \
+    sudo \
+    unzip \
+    wget \
+    zip \
+    git \
+    && rm -rf /var/lib/apt/list/*
 
-# Prevents installdependencies.sh from prompting the user and blocking the image creation
-ARG DEBIAN_FRONTEND=noninteractive
+# Add and config runner user as sudo
+# Remove default admin user
+# https://github.com/nestybox/dockerfiles/blob/master/ubuntu-focal-systemd/Dockerfile
+RUN useradd -m runner \
+    && usermod -aG sudo runner \
+    && usermod -aG docker runner \
+    && echo "%sudo   ALL=(ALL:ALL) NOPASSWD:ALL" > /etc/sudoers \
+    && userdel -r admin
 
-RUN apt update -y && apt upgrade -y && useradd -m docker
-RUN apt install -y --no-install-recommends \
-    curl jq build-essential libssl-dev libffi-dev libicu-dev python3 python3-venv python3-dev python3-pip git unzip libasound2t64
+# Build args
+ARG TARGETPLATFORM=amd64
+ARG RUNNER_VERSION=2.322.0
+WORKDIR /home/runner
 
-RUN cd /home/docker && mkdir actions-runner && cd actions-runner \
-    && curl -O -L https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz \
-    && tar xzf ./actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz
+# Runner download supports amd64 as x64
+RUN export ARCH=$(echo ${TARGETPLATFORM} | cut -d / -f2) \
+    && if [ "$ARCH" = "amd64" ]; then export ARCH=x64 ; fi \
+    && curl -Ls -o runner.tar.gz https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-${ARCH}-${RUNNER_VERSION}.tar.gz \
+    && tar xzf ./runner.tar.gz \
+    && rm runner.tar.gz \
+    && ./bin/installdependencies.sh \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN chown -R docker /home/docker && /home/docker/actions-runner/bin/installdependencies.sh
+RUN chown -R runner /home/runner
 
 COPY start.sh start.sh
 
@@ -21,7 +44,7 @@ COPY start.sh start.sh
 RUN chmod +x start.sh
 
 # since the config and run script for actions are not allowed to be run by root,
-# set the user to "docker" so all subsequent commands are run as the docker user
-USER docker
+# set the user to "runner" so all subsequent commands are run as the runner user
+USER runner
 
 ENTRYPOINT ["./start.sh"]

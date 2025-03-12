@@ -1,17 +1,24 @@
 #!/bin/bash
 
-REPOSITORY=$REPO
+sudo service docker start
 
-echo "REPO ${REPOSITORY}"
-echo "REG_TOKEN ${REG_TOKEN}"
+if [ -n "${GITHUB_REPOSITORY}" ]; then
+  auth_url="https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPOSITORY}/actions/runners/registration-token"
+  registration_url="https://github.com/${GITHUB_OWNER}/${GITHUB_REPOSITORY}"
+else
+  auth_url="https://api.github.com/orgs/${GITHUB_OWNER}/actions/runners/registration-token"
+  registration_url="https://github.com/${GITHUB_OWNER}"
+fi
 
-cd /home/docker/actions-runner
+REG_TOKEN=$(curl -X POST -H "Authorization: token ${TOKEN}" -H "Accept: application/vnd.github+json" ${auth_url} | jq .token --raw-output)
 
-./config.sh --url https://github.com/${REPOSITORY} --token ${REG_TOKEN}
+cd /home/runner
+
+./config.sh --url ${registration_url} --token ${REG_TOKEN}
 
 cleanup() {
-    echo "Removing runner..."
-    ./config.sh remove --unattended --token ${REG_TOKEN}
+  echo "Removing runner..."
+  ./config.sh remove --unattended --token ${REG_TOKEN}
 }
 
 trap 'cleanup; exit 130' INT
