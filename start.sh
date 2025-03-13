@@ -14,7 +14,7 @@ REG_TOKEN=$(curl -X POST -H "Authorization: token ${TOKEN}" -H "Accept: applicat
 
 cd /home/runner
 
-./config.sh --url ${registration_url} --token ${REG_TOKEN}
+./config.sh --url ${registration_url} --token ${REG_TOKEN} --labels "${RUNNER_LABELS}"
 
 cleanup() {
   echo "Removing runner..."
