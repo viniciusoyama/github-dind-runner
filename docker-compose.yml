@@ -4,6 +4,7 @@ services:
     runtime: sysbox-runc
     restart: always
     env_file: .env
+    init: true
     deploy:
       mode: replicated
       replicas: 4

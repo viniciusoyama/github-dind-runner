@@ -47,4 +47,4 @@ RUN chmod +x start.sh
 # set the user to "runner" so all subsequent commands are run as the runner user
 USER runner
 
-ENTRYPOINT ["./start.sh"]
+ENTRYPOINT ["/home/runner/start.sh"]
